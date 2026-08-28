@@ -71,6 +71,20 @@ class SupervisorTests(unittest.TestCase):
                 holder.terminate()
                 holder.wait(timeout=5)
 
+    def test_no_dummy_local_socks_fallback(self):
+        supervise = SUPERVISOR.read_text()
+        restore = (ROOT / "scripts" / "restore-pipeline.sh").read_text()
+        for body in (supervise, restore):
+            self.assertNotIn("local_socks5", body)
+            self.assertNotIn("dummy local SOCKS fallback", body)
+
+    def test_restore_pipeline_is_executable_and_parses(self):
+        restore = ROOT / "scripts" / "restore-pipeline.sh"
+        self.assertTrue(restore.is_file())
+        self.assertTrue(os.access(restore, os.X_OK))
+        parsed = subprocess.run(["bash", "-n", str(restore)], check=False)
+        self.assertEqual(parsed.returncode, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

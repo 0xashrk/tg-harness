@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Keep WARP/SOCKS :40000 and one secretary watch up. Do not change default route.
 # Real WARP proxy only. A dummy local SOCKS on :40000 looks "up" while MTProto still fails.
+# After rematerialize, run scripts/restore-pipeline.sh (this loop does not install packages).
 set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 OUT="$ROOT/out"
@@ -41,17 +42,34 @@ ensure_socks() {
     return 0
   fi
   log "socks 40000 down; restoring warp proxy"
-  if command -v warp-cli >/dev/null 2>&1; then
-    if ! pgrep -x warp-svc >/dev/null 2>&1; then
+  if ! command -v warp-cli >/dev/null 2>&1; then
+    log "FAILED to restore socks 40000 (warp-cli missing; run scripts/restore-pipeline.sh — not a dummy local SOCKS)"
+    return 1
+  fi
+  if ! pgrep -x warp-svc >/dev/null 2>&1; then
+    if command -v systemctl >/dev/null 2>&1; then
       if command -v sudo >/dev/null 2>&1; then
-        sudo -n warp-svc >>"$SOCKS_LOG" 2>&1 &
-        sleep 2
+        sudo -n systemctl start warp-svc >>"$SOCKS_LOG" 2>&1 || true
+        sleep 1
       fi
     fi
-    warp-cli --accept-tos mode proxy >>"$SOCKS_LOG" 2>&1 || true
-    warp-cli --accept-tos connect >>"$SOCKS_LOG" 2>&1 || true
-    sleep 2
   fi
+  if ! pgrep -x warp-svc >/dev/null 2>&1; then
+    if command -v sudo >/dev/null 2>&1; then
+      sudo -n warp-svc >>"$SOCKS_LOG" 2>&1 &
+      sleep 2
+    fi
+  fi
+  if ! warp-cli --accept-tos registration show >>"$SOCKS_LOG" 2>&1; then
+    warp-cli --accept-tos registration new >>"$SOCKS_LOG" 2>&1 || true
+  fi
+  warp-cli --accept-tos mode proxy >>"$SOCKS_LOG" 2>&1 || true
+  warp-cli --accept-tos proxy port 40000 >>"$SOCKS_LOG" 2>&1 || true
+  # Optional: this host needed MASQUE h2-only after rematerialize. Skip if unknown.
+  warp-cli --accept-tos tunnel protocol set MASQUE >>"$SOCKS_LOG" 2>&1 || true
+  warp-cli --accept-tos tunnel masque-options set h2-only >>"$SOCKS_LOG" 2>&1 || true
+  warp-cli --accept-tos connect >>"$SOCKS_LOG" 2>&1 || true
+  sleep 2
   if socks_up; then
     log "socks restored via warp-cli proxy"
     return 0

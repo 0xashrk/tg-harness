@@ -154,6 +154,16 @@ That loop keeps real WARP on `:40000` and one `TG_HARNESS_ROLE=secretary` watch.
 
 On the **reporter** Grok, create a weekday morning routine: `status`, `pull` each `mode=report` chat, write the brief in that Grok chat. Never `send`.
 
+### After the box rematerializes
+
+Apt packages and processes are gone. `/workspace` files stay. Run:
+
+```bash
+./scripts/restore-pipeline.sh
+```
+
+That restores Cloudflare WARP in proxy-only on `127.0.0.1:40000` (no default-route change), recreates `.venv` if needed, and starts exactly one secretary watch. It caches the WARP `.deb` under `.cache/warp/` (gitignored) so the next rematerialize can install locally. Do not use a dummy SOCKS — it cannot pass Telegram MTProto. A 5-minute keep-alive can call this script; it is safe when already healthy.
+
 ## What each Grok runs
 
 ```bash
