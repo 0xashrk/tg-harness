@@ -150,6 +150,15 @@ Then start exactly one watch and keep it alive:
 ./scripts/supervise.sh
 ```
 
+One-shot heal (keep-alive / after rematerialize) without starting another supervisor:
+
+```bash
+bash "$(pwd)/scripts/restore-pipeline.sh"
+# or: TG_HARNESS_ROLE=secretary python -m tg_harness.cli restore
+```
+
+Use an **absolute** path to the script (or the `cli restore` wrapper). Agent Auto-review sometimes cannot bind a relative `.sh` invoke ("executable content could not be bound"); absolute `bash /…/restore-pipeline.sh` or inlining the script body fixes that. Never put a dummy SOCKS on `:40000`.
+
 That loop keeps real WARP on `:40000` and one `TG_HARNESS_ROLE=secretary` watch. If `watch` dies overnight, the secretary never wakes. Reporter `pull` goes through `watch.sock` and fails closed while the socket is down, so nobody opens a second Telethon client.
 
 On the **reporter** Grok, create a weekday morning routine: `status`, `pull` each `mode=report` chat, write the brief in that Grok chat. Never `send`.

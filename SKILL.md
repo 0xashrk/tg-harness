@@ -16,9 +16,10 @@ python -m tg_harness.cli pull "Chat" --hours 24
 python -m tg_harness.cli send "Chat" --text "..."          # secretary role only
 python -m tg_harness.cli send "Chat" --reply-to <id> --text "..."
 python -m tg_harness.cli watch                             # secretary role only
+TG_HARNESS_ROLE=secretary python -m tg_harness.cli restore # one-shot WARP+watch heal
 ```
 
-Keep `watch` running (supervise it with `scripts/supervise.sh` or it dies overnight and the secretary never wakes). `watch.sock` is request/response Unix IPC, not a WebSocket. The Telegram pipe is Telethon. `pull` / `send` / `status` go through the socket on the same client. Do **not** kill watch to send. Do not open a second client.
+Keep `watch` running (long-running: `scripts/supervise.sh`; one-shot heal when SOCKS/watch die: `bash /abs/path/scripts/restore-pipeline.sh` or `TG_HARNESS_ROLE=secretary python -m tg_harness.cli restore`. Use absolute paths so Auto-review can bind the command; if binding fails, escalate or inline the script body. Never start a dummy SOCKS / `local_socks5`. Never open a second Telethon client.) `watch.sock` is request/response Unix IPC, not a WebSocket. The Telegram pipe is Telethon. `pull` / `send` / `status` go through the socket on the same client. Do **not** kill watch to send. Do not open a second client.
 
 `watch` listens on `mode=secretary` only, queues `out/secretary-queue.jsonl`, POSTs the webhook, and on startup backfills inbound after the last outgoing. Report chats (`mode=report`) are ignored and send-blocked.
 

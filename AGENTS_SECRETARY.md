@@ -14,7 +14,23 @@ python -m tg_harness.cli send "<chat>" --text "..."
 python -m tg_harness.cli send "<chat>" --reply-to <message_id> --text "..."
 ```
 
-Keep `watch` up (run `scripts/supervise.sh` so WARP `:40000` and one secretary watch restart if they die). Do not kill it to send. In a 1:1, do not quote every message. Only chats in `config.toml` with `mode=secretary` can be pulled or sent.
+Keep `watch` up. Do not kill it to send. In a 1:1, do not quote every message. Only chats in `config.toml` with `mode=secretary` can be pulled or sent.
+
+### Pipeline heal (keep-alive / one-shot)
+
+If WARP SOCKS `127.0.0.1:40000` or the secretary watch is down, restore — do **not** invent a dummy SOCKS, do **not** start `local_socks5`, do **not** open a second Telethon client, do **not** send Telegram, do **not** change the default route.
+
+Preferred Auto-review-safe invoke (absolute bash + absolute script, cwd = checkout):
+
+```bash
+bash /absolute/path/to/tg-harness/scripts/restore-pipeline.sh
+# live box example:
+# bash /workspace/tg-harness/scripts/restore-pipeline.sh
+# or:
+# TG_HARNESS_ROLE=secretary python -m tg_harness.cli restore
+```
+
+If Auto-review fails with "executable content could not be bound", escalate that same absolute command for approval, or paste the script body inline into the Shell command so the reviewer can see it. Long-running supervision remains `scripts/supervise.sh`; keep-alive one-shot heal is `restore-pipeline.sh` / `cli restore` — do not start `supervise.sh` from a keep-alive tick as a substitute.
 
 ## Who they are
 

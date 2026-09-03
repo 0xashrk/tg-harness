@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""login | pull | send | chats | watch — one live Telethon client when watch is up."""
+"""login | pull | send | chats | watch | restore — one live Telethon client when watch is up."""
 
 from __future__ import annotations
 
@@ -632,6 +632,24 @@ async def cmd_watch(cfg: dict, args: argparse.Namespace) -> None:
         await client.run_until_disconnected()
 
 
+def cmd_restore(cfg: dict, args: argparse.Namespace) -> None:
+    """One-shot heal: real WARP on :40000 + exactly one secretary watch.
+
+    Does not open Telethon itself — execs scripts/restore-pipeline.sh with an
+    absolute path so agent Auto-review can bind the command. Secretary only.
+    """
+    role = role_of()
+    if role != "secretary":
+        die("restore requires TG_HARNESS_ROLE=secretary (got %r)" % (role,))
+    script = ROOT / "scripts" / "restore-pipeline.sh"
+    if not script.is_file():
+        die(f"missing {script}")
+    # Absolute bash + absolute script: preferred Auto-review-safe invoke.
+    os.chdir(ROOT)
+    os.execvp("bash", ["bash", str(script.resolve())])
+
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="tg", description="Thin Telegram I/O for agents")
     p.add_argument("--config", default=str(ROOT / "config.toml"))
@@ -662,6 +680,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     watch = sub.add_parser("watch", help="listen for secretary inbound and POST webhook")
     watch.add_argument("--webhook")
+
+    sub.add_parser(
+        "restore",
+        help="heal WARP :40000 + one secretary watch (execs scripts/restore-pipeline.sh; secretary only)",
+    )
     return p
 
 
@@ -669,6 +692,9 @@ def main() -> None:
     load_dotenv(ROOT / ".env")
     args = build_parser().parse_args()
     cfg = load_config(Path(args.config))
+    if args.cmd == "restore":
+        cmd_restore(cfg, args)
+        return
     handler = {
         "login": cmd_login,
         "status": cmd_status,
