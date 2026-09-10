@@ -15,7 +15,7 @@ python -m tg_harness.cli send "<chat>" --text "..."
 python -m tg_harness.cli send "<chat>" --reply-to <message_id> --text "..."
 ```
 
-Keep `watch` up (run `scripts/supervise.sh` so WARP `:40000` and one secretary watch restart if they die). Do not kill it to send. In a 1:1, do not quote every message. Only chats in `config.toml` with `mode=secretary` can be pulled or sent.
+Keep `watch` up (run `scripts/supervise.sh` so WARP `:40000` and one secretary watch restart if they die). Do not kill it to send. In a 1:1, do not quote every message. Only chats in `config.toml` with `mode=secretary` can be pulled or sent — unless `[event] enabled = true`, which also allows unknown private 1:1 stranger DMs (see Event mode).
 
 ## Who they are
 
@@ -59,12 +59,30 @@ Write in the **user’s** first person, matching that chat’s card — not as G
 A `python -m tg_harness.cli watch` process listens on secretary chats and POSTs a webhook routine. When you wake from that webhook:
 
 1. Read `out/secretary-queue.jsonl` / the webhook payload.
-2. `card show` for that chat (ok if missing).
-3. `pull` recent history at the **usual depth** (~48h) — do not shorten because a card exists.
+2. `card show` for that chat (ok if missing; **event strangers have no card** — `card` is blocked for `event: true`).
+3. `pull` recent history. Allowlisted chats: **usual depth (~48h)** — do not shorten because a card exists. Event strangers (payload `event: true`): a shorter first pull (e.g. `--hours 24`) is fine.
 4. Infer and **send** (unless a guardrail says hold).
-5. Tell the user one line what you did. Update the card if open loops / tone shifted.
+5. Tell the user one line what you did. Update the card if open loops / tone shifted (allowlisted only).
 
 If `SECRETARY_WEBHOOK_URL` is unset, events still land in `out/secretary-queue.jsonl`.
+
+### Event mode (stranger 1:1 DMs)
+
+When `[event] enabled = true` in `config.toml`, watch also wakes on **unknown private 1:1s** (not groups/channels, not `mode=report` chats, not outgoings). Allowlisted `mode=secretary` chats are unchanged.
+
+```bash
+python -m tg_harness.cli event status
+python -m tg_harness.cli event on --name "Conference Name"
+python -m tg_harness.cli event off
+```
+
+Watch **reloads** `[event]` on each `NewMessage`, so after `event on --name "…"` strangers wake **immediately** without restarting watch (preferred). If an older watch build did not reload, restart watch once.
+
+Inbound payload for strangers includes `event: true` and `event_name` (from `[event].name`). Reply guidance (you own the prose; harness only wakes/pulls/sends):
+
+- Short hi/hey → mirror and continue.
+- Blurb / links / docs → was good to meet at `[event.name]` / `event_name`.
+- **Hold** rules unchanged: money, medical, or two live asks → draft-and-wait / hold; do not auto-send.
 
 ## Quoting
 

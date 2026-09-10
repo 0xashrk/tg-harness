@@ -17,3 +17,13 @@ session_path = "user.session"
 # title = "Example friend"
 # mode = "secretary"       # secretary = may send
 # auto = true              # default send. Set false to draft-and-wait on this chat.
+
+# Event mode: when enabled, secretary watch also wakes on unknown *private* 1:1 DMs
+# (not groups/channels, not mode=report chats, not outgoings). Toggle live with:
+#   python -m tg_harness.cli event on --name "Meetup Name"
+#   python -m tg_harness.cli event off
+# Watch reloads [event] on each NewMessage, so strangers wake without restart.
+[event]
+enabled = false
+name = ""
+

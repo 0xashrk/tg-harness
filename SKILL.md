@@ -18,13 +18,15 @@ python -m tg_harness.cli send "Chat" --reply-to <id> --text "..."
 python -m tg_harness.cli card show "Chat"                  # secretary role only
 python -m tg_harness.cli card write "Chat" --relationship friend --voice "…"
 python -m tg_harness.cli watch                             # secretary role only
+python -m tg_harness.cli event on --name "Meetup"          # wake on stranger private 1:1s
+python -m tg_harness.cli event off
 ```
 
 Keep `watch` running (supervise it with `scripts/supervise.sh` or it dies overnight and the secretary never wakes). `watch.sock` is request/response Unix IPC, not a WebSocket. The Telegram pipe is Telethon. `pull` / `send` / `status` go through the socket on the same client. Do **not** kill watch to send. Do not open a second client.
 
-`watch` listens on `mode=secretary` only, queues `out/secretary-queue.jsonl`, POSTs the webhook, and on startup backfills inbound after the last outgoing. Report chats (`mode=report`) are ignored and send-blocked.
+`watch` listens on `mode=secretary` chats, and when `[event] enabled = true` also on unknown private 1:1 DMs. It queues `out/secretary-queue.jsonl`, POSTs the webhook, and on startup backfills inbound after the last outgoing (allowlisted only). Report chats (`mode=report`) are ignored and send-blocked. See Event mode in `AGENTS_SECRETARY.md`.
 
-The CLI enforces this: `TG_HARNESS_ROLE=reporter` cannot `send` or pull secretary chats. `secretary` cannot pull or send report chats. Names/ids must exist in `config.toml` (no raw-id fallback). Telegram’s live title must match the config title.
+The CLI enforces this: `TG_HARNESS_ROLE=reporter` cannot `send` or pull secretary chats. `secretary` cannot pull or send report chats. Names/ids must exist in `config.toml` (no raw-id fallback) unless event mode is on and the id is an unknown private chat. Telegram’s live title must match the config title (skipped for ephemeral event chats).
 
 WARP proxy mode on `127.0.0.1:40000` if MTProto is blocked. Do not change the default route.
 

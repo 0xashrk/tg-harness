@@ -154,6 +154,10 @@ That loop keeps real WARP on `:40000` and one `TG_HARNESS_ROLE=secretary` watch.
 
 On the **reporter** Grok, create a weekday morning routine: `status`, `pull` each `mode=report` chat, write the brief in that Grok chat. Never `send`.
 
+## Event mode
+
+Optional `[event]` in `config.toml`: when `enabled = true`, secretary `watch` also wakes on unknown **private** 1:1 DMs (never groups/channels, never `mode=report`, never outgoings). Toggle with `python -m tg_harness.cli event on --name "…"` / `event off`. Watch reloads `[event]` each message so strangers wake without restart. Payload includes `event: true` and `event_name`. See [AGENTS_SECRETARY.md](AGENTS_SECRETARY.md).
+
 ## Relationship cards
 
 Secretary chats can keep a durable card under `out/cards/<chat_id>.md` (gitignored). See [`cards/README.md`](cards/README.md). Use `card show` / `card write` to warm voice, taboos, and open loops between wakes. Cards **add** context; they do **not** replace the recent `pull` (keep ~48h).
